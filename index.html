@@ -317,6 +317,16 @@
             }
         });
 
+        canvas.addEventListener('click', function(e) {
+            if (e.target === canvas) {
+                clearSelection();
+            }
+        });
+        canvas.addEventListener('contextmenu',function(e) {
+            // 画布处禁用右键
+            e.preventDefault();
+        })
+
         // 添加节点
         function addNode() {
             const canvas = document.getElementById('canvas');
