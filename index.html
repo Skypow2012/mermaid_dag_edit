@@ -232,7 +232,7 @@
         <div class="toolbar">
             <button class="btn btn-primary" onclick="addNode()">添加节点</button>
             <button class="btn btn-danger" onclick="deleteSelected()">删除选中</button>
-            <button class="btn btn-warning" onclick="deleteSelectedEdge()">删除边</button>
+            <button class="btn btn-warning" onclick="deleteEdgeTips()">删除边</button>
             <button class="btn btn-success" onclick="exportCode()">导出代码</button>
             <button class="btn" onclick="clearAll()">清空画布</button>
             <script>
@@ -623,7 +623,11 @@
             document.querySelectorAll('.edge').forEach(e => e.classList.remove('selected'));
             selectedEdge = null;
         }
-
+        
+        // 删除边的提示
+        function deleteEdgeTips() {
+            alert("通过按住鼠标右键的同时划过边，来删除边。")
+        }
         // 删除选中的边
         function deleteSelectedEdge() {
             if (selectedEdge) {
