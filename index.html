@@ -245,7 +245,6 @@
                 });
                 // 按d删除
                 document.addEventListener('keydown', function(e) {
-                    console.log(e);
                     if ((e.key === 'd' || e.key === 'Delete') && !window.isEditing) {
                         e.preventDefault();
                         deleteSelected();
@@ -326,7 +325,6 @@
         });
         canvas.addEventListener('mousemove', function(e) {
             if (e.buttons == 2) {
-                console.log(e)
                 // 右键删除遇到的edge
                 const edgesToDelete = edges.filter(edge => {
                     const fromNode = document.getElementById(edge.from);
@@ -357,7 +355,6 @@
                     const ab2 = AB.x * AB.x + AB.y * AB.y;
                     const ap_ab = AP.x * AB.x + AP.y * AB.y;
                     const distance = Math.abs(AP.x * AB.y - AP.y * AB.x) / Math.sqrt(ab2);
-                    console.log(distance, ':', x, y, x1, y1, x2, y2);
                     if (distance < 5) {
                         selectEdge(edge.id);
                         deleteSelectedEdge();
@@ -642,8 +639,9 @@
             if (selectedEdge) {
                 const edgeIndex = edges.findIndex(e => e.id === selectedEdge);
                 if (edgeIndex > -1) {
+                    edge = edges[edgeIndex];
+                    window.steps.push(`删除边: ${edge.from} → ${edge.to}`);
                     edges.splice(edgeIndex, 1);
-                    window.steps.push(`删除边: ${edges.from} → ${edges.to}`);
                     updateEdges();
                     updateMermaidCode();
                     setStatus('已删除选中的边', 'info');
