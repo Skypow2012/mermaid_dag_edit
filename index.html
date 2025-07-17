@@ -130,7 +130,7 @@
         .edge {
             position: absolute;
             pointer-events: none;
-            z-index: 1;
+            z-index: 20;
             top: 0;
             right: 0;
             left: 0;
@@ -590,7 +590,7 @@
                 edgeElement.id = edge.id;
                 edgeElement.innerHTML = `
                     <svg>
-                        <path d="M ${x1} ${y1} L ${x2} ${y2}" />
+                        <path d="M ${x1} ${y1+10} L ${x2} ${y2-10}" />
                     </svg>
                 `;
                 
