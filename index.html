@@ -109,6 +109,10 @@
             transition: box-shadow 0.3s;
             z-index: 10;
         }
+        .node.op {
+            background: #e67e22;
+            color: white;
+        }
         
         .node:hover {
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
@@ -117,6 +121,10 @@
         .node.selected {
             background: #2c3e50;
             box-shadow: 0 0 0 3px #3498db;
+        }
+        .node.op.selected {
+            background: #e67e22;
+            box-shadow: 0 0 0 3px #f39c12;
         }
         
         .edge {
@@ -426,6 +434,12 @@
                 window.isEditing = false;
                 const newLabel = input.value.trim() || currentText;
                 node.textContent = newLabel;
+                // 如果开头是大写字母，就是算子
+                if (/^[A-Z]/.test(newLabel)) {
+                    node.classList.add('op');
+                } else {
+                    node.classList.remove('op');
+                }
                 
                 // 更新节点数据
                 const nodeData = nodes.find(n => n.id === node.id);
