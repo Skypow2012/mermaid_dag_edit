@@ -399,6 +399,10 @@
             const nodeId = node.id;
             
             if (e.ctrlKey || e.shiftKey) {
+                if (!selectedNode) {
+                    setStatus('请先选择一个节点进行连接', 'error');
+                    return;
+                }
                 // 开始连接
                 addEdge(selectedNode, nodeId);
 
@@ -718,7 +722,8 @@
             statusBar.textContent = message;
             statusBar.className = 'status-bar ' + type;
             
-            setTimeout(() => {
+            clearTimeout(window.statusTimeout);
+            window.statusTimeout = setTimeout(() => {
                 statusBar.className = 'status-bar';
                 statusBar.textContent = '点击"添加节点"开始创建DAG图。拖拽节点进行连接，拖拽节点到空白处移动位置。';
             }, 3000);
