@@ -11,3 +11,7 @@ esc 取消选中
 选中节点后，按住ctrl再选目标节点 添加边
 
 window的steps里存了添加删除的操作记录，用于回溯第一张图到第二张图的的操作过程
+
+## tips
+graph LR，left to right, 从左到右
+graph TD，top down, 从上到下
