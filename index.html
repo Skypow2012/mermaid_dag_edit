@@ -322,6 +322,47 @@
                 clearSelection();
             }
         });
+        canvas.addEventListener('mousemove', function(e) {
+            if (e.buttons == 2) {
+                console.log(e)
+                // 右键删除遇到的edge
+                const edgesToDelete = edges.filter(edge => {
+                    const fromNode = document.getElementById(edge.from);
+                    const toNode = document.getElementById(edge.to);
+                    if (!fromNode || !toNode) return false;
+                    
+                    const fromRect = fromNode.getBoundingClientRect();
+                    const toRect = toNode.getBoundingClientRect();
+                    const canvasRect = canvas.getBoundingClientRect();
+                    
+                    const x = e.clientX - canvasRect.left;
+                    const y = e.clientY - canvasRect.top;
+                    const x1 = fromRect.left + fromRect.width / 2 - canvasRect.left;
+                    const y1 = fromRect.top + fromRect.height / 2 - canvasRect.top;
+                    const x2 = toRect.left + toRect.width / 2 - canvasRect.left;
+                    const y2 = toRect.top + toRect.height / 2 - canvasRect.top;
+
+                    if ((x < x1 && x < x2) || (x > x1 && x > x2) ||
+                        (y < y1 && y < y2) || (y > y1 && y > y2)) {
+                        return false; // 鼠标不在连线范围内
+                    }
+                    
+                    // 计算点和线的距离
+                    const A = { x: x1, y: y1 };
+                    const B = { x: x2, y: y2 };
+                    const AP = { x: x - A.x, y: y - A.y };
+                    const AB = { x: B.x - A.x, y: B.y - A.y };
+                    const ab2 = AB.x * AB.x + AB.y * AB.y;
+                    const ap_ab = AP.x * AB.x + AP.y * AB.y;
+                    const distance = Math.abs(AP.x * AB.y - AP.y * AB.x) / Math.sqrt(ab2);
+                    console.log(distance, ':', x, y, x1, y1, x2, y2);
+                    if (distance < 5) {
+                        selectEdge(edge.id);
+                        deleteSelectedEdge();
+                    }
+                });
+            }
+        })
         canvas.addEventListener('contextmenu',function(e) {
             // 画布处禁用右键
             e.preventDefault();
