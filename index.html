@@ -739,6 +739,7 @@
             a.click();
             URL.revokeObjectURL(url);
             setStatus('Mermaid代码已导出！', 'success');
+            window.steps.push(`导出Mermaid代码`);
         }
 
         // 清空画布
