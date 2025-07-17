@@ -305,6 +305,7 @@
         let isDragging = false;
         let connectionStart = null;
         let nodeCounter = 0;
+        window.steps = []
 
         // 初始化Mermaid
         mermaid.initialize({ 
@@ -389,6 +390,7 @@
             
             // 自动选中新添加的节点
             selectNode(nodeId);
+            window.steps.push(`添加节点: ${nodeId}`);
         }
 
         // 处理节点拖拽
@@ -528,6 +530,7 @@
                 to: toId,
                 id: `e${fromId}-${toId}`
             });
+            window.steps.push(`添加边: ${fromId} → ${toId}`);
             updateEdges();
             updateMermaidCode();
             setStatus(`已添加边: ${getNodeLabel(fromId)} → ${getNodeLabel(toId)}`, 'success');
@@ -635,6 +638,7 @@
                 const edgeIndex = edges.findIndex(e => e.id === selectedEdge);
                 if (edgeIndex > -1) {
                     edges.splice(edgeIndex, 1);
+                    window.steps.push(`删除边: ${edges.from} → ${edges.to}`);
                     updateEdges();
                     updateMermaidCode();
                     setStatus('已删除选中的边', 'info');
@@ -649,11 +653,15 @@
         function deleteSelected() {
             if (selectedNode) {
                 // 删除相关边
-                edges = edges.filter(e => e.from !== selectedNode && e.to !== selectedNode);
+                edges = edges.filter(e => {
+                    if (e.from !== selectedNode && e.to !== selectedNode) return true;
+                    window.steps.push(`删除边: ${e.id}`);
+                });
                 
                 // 删除节点
                 const nodeIndex = nodes.findIndex(n => n.id === selectedNode);
                 if (nodeIndex > -1) {
+                    window.steps.push(`删除节点: ${selectedNode}`);
                     nodes.splice(nodeIndex, 1);
                     document.getElementById(selectedNode).remove();
                 }
