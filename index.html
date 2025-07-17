@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可视化DAG编辑器 - Mermaid生成器</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            display: inline-block;
+        }
+        
+        .toolbar {
+            float: right;
+            margin-top: 5px;
+        }
+        
+        .toolbar button {
+            margin-left: 10px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #2ecc71;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
+        }
+        
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .editor-panel {
+            flex: 1;
+            background: white;
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: default;
+        }
+        
+        .node {
+            position: absolute;
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: move;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: box-shadow 0.3s;
+            z-index: 10;
+        }
+        
+        .node:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .node.selected {
+            background: #2c3e50;
+            box-shadow: 0 0 0 3px #3498db;
+        }
+        
+        .edge {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1;
+            top: 0;
+            right: 0;
+            left: 0;
+            bottom: 0;
+        }
+        
+        .edge svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .edge path {
+            fill: none;
+            stroke: #7f8c8d;
+            stroke-width: 2;
+            marker-end: url(#arrowhead);
+        }
+        
+        .edge.selected path {
+            stroke: #e74c3c;
+            stroke-width: 3;
+        }
+        
+        .edge-label {
+            position: absolute;
+            background: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #7f8c8d;
+            cursor: pointer;
+            pointer-events: auto;
+            border: 1px solid #ddd;
+            z-index: 5;
+        }
+        
+        .output-panel {
+            width: 400px;
+            background: white;
+            margin: 20px 20px 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel-header {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .mermaid-output {
+            flex: 1;
+            padding: 15px;
+            overflow: auto;
+            background: #f8f9fa;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .preview {
+            padding: 15px;
+            border-top: 1px solid #eee;
+            background: white;
+        }
+        
+        .status-bar {
+            background: #ecf0f1;
+            padding: 10px 20px;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        .success {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+        
+        .info {
+            color: #3498db;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>可视化DAG编辑器</h1>
+        <div class="toolbar">
+            <button class="btn btn-primary" onclick="addNode()">添加节点</button>
+            <button class="btn btn-danger" onclick="deleteSelected()">删除选中</button>
+            <button class="btn btn-warning" onclick="deleteSelectedEdge()">删除边</button>
+            <button class="btn btn-success" onclick="exportCode()">导出代码</button>
+            <button class="btn" onclick="clearAll()">清空画布</button>
+            <script>
+                // 处理Esc键清除选择
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        clearSelection();
+                    }
+                });
+                // 按d删除
+                document.addEventListener('keydown', function(e) {
+                    console.log(e);
+                    if ((e.key === 'd' || e.key === 'Delete') && !window.isEditing) {
+                        e.preventDefault();
+                        deleteSelected();
+                    }
+                });
+                // 按a添加节点
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'a' && !window.isEditing) {
+                        e.preventDefault();
+                        addNode();
+                    }
+                });
+                // 按e删除边
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'e' && !window.isEditing) {
+                        e.preventDefault();
+                        deleteSelectedEdge();
+                    }
+                });
+            </script>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <div class="editor-panel">
+            <div class="canvas" id="canvas">
+                <svg style="position: absolute; width: 100%; height: 100%; pointer-events: none;">
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+                                refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#7f8c8d" />
+                        </marker>
+                    </defs>
+                </svg>
+            </div>
+        </div>
+        
+        <div class="output-panel">
+            <div class="panel-header">Mermaid代码</div>
+            <div class="mermaid-output" id="mermaidOutput"></div>
+            <div class="preview">
+                <div class="panel-header">预览</div>
+                <div id="mermaidPreview" class="mermaid">graph TD</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar" id="statusBar">
+        点击"添加节点"开始创建DAG图。拖拽节点进行连接，拖拽节点到空白处移动位置。
+    </div>
+
+    <script>
+        let nodes = [];
+        let edges = [];
+        let selectedNode = null;
+        let selectedEdge = null;
+        let draggedNode = null;
+        let isDragging = false;
+        let connectionStart = null;
+        let nodeCounter = 0;
+
+        // 初始化Mermaid
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+
+        // 添加节点
+        function addNode() {
+            const canvas = document.getElementById('canvas');
+            const node = document.createElement('div');
+            const nodeId = `n${++nodeCounter}`;
+            node.className = 'node';
+            node.id = nodeId;
+            node.textContent = `节点${nodeCounter}`;
+            node.style.left = '50px';
+            node.style.top = '50px';
+            
+            // 添加事件监听器
+            node.addEventListener('mousedown', handleNodeMouseDown);
+            node.addEventListener('dblclick', editNodeLabel);
+            
+            canvas.appendChild(node);
+            nodes.push({ id: nodeId, label: `节点${nodeCounter}`, element: node });
+            updateMermaidCode();
+            
+            // 自动选中新添加的节点
+            selectNode(nodeId);
+        }
+
+        // 处理节点拖拽
+        function handleNodeMouseDown(e) {
+            const node = e.currentTarget;
+            const nodeId = node.id;
+            
+            if (e.ctrlKey || e.shiftKey) {
+                // 开始连接
+                addEdge(selectedNode, nodeId);
+
+                e.preventDefault();
+                return;
+            }
+            
+            // 选择节点
+            selectNode(nodeId);
+            clearEdgeSelection();
+            
+            // 开始拖拽
+            draggedNode = node;
+            isDragging = true;
+            
+            const rect = node.getBoundingClientRect();
+            const offsetX = e.clientX - rect.left;
+            const offsetY = e.clientY - rect.top;
+            
+            function handleMouseMove(e) {
+                if (!isDragging) return;
+                
+                const canvas = document.getElementById('canvas');
+                const canvasRect = canvas.getBoundingClientRect();
+                
+                let newX = e.clientX - canvasRect.left - offsetX;
+                let newY = e.clientY - canvasRect.top - offsetY;
+                
+                // 边界检查
+                newX = Math.max(0, Math.min(newX, canvasRect.width - rect.width));
+                newY = Math.max(0, Math.min(newY, canvasRect.height - rect.height));
+                
+                node.style.left = newX + 'px';
+                node.style.top = newY + 'px';
+                
+                updateEdges();
+            }
+            
+            function handleMouseUp(e) {
+                
+                isDragging = false;
+                draggedNode = null;
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+            }
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+        }
+
+        // 选择节点
+        function selectNode(nodeId) {
+            // 清除之前的选择
+            document.querySelectorAll('.node').forEach(n => n.classList.remove('selected'));
+            
+            // 选择新节点
+            const node = document.getElementById(nodeId);
+            if (node) {
+                node.classList.add('selected');
+                selectedNode = nodeId;
+            }
+        }
+
+        // 编辑节点标签
+        function editNodeLabel(e) {
+            const node = e.currentTarget;
+            const currentText = node.textContent;
+            window.isEditing = true;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentText;
+            input.style.width = '100px';
+            input.style.border = 'none';
+            input.style.background = 'transparent';
+            input.style.color = 'white';
+            input.style.textAlign = 'center';
+            input.style.outline = 'none';
+            
+            node.textContent = '';
+            node.appendChild(input);
+            input.focus();
+            input.select();
+            
+            function finishEdit() {
+                window.isEditing = false;
+                const newLabel = input.value.trim() || currentText;
+                node.textContent = newLabel;
+                
+                // 更新节点数据
+                const nodeData = nodes.find(n => n.id === node.id);
+                if (nodeData) {
+                    nodeData.label = newLabel;
+                    updateMermaidCode();
+                }
+            }
+            
+            input.addEventListener('blur', finishEdit);
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    finishEdit();
+                }
+            });
+        }
+
+        // 添加边
+        function addEdge(fromId, toId) {
+            // 检查是否已存在
+            if (edges.some(e => (e.from === fromId && e.to === toId))) {
+                setStatus('这条边已经存在！', 'error');
+                return;
+            }
+            
+            // 检查是否形成环
+            if (wouldCreateCycle(fromId, toId)) {
+                setStatus('添加这条边会形成循环！DAG不允许循环。', 'error');
+                return;
+            }
+            
+            edges.push({ 
+                from: fromId, 
+                to: toId,
+                id: `e${fromId}-${toId}`
+            });
+            updateEdges();
+            updateMermaidCode();
+            setStatus(`已添加边: ${getNodeLabel(fromId)} → ${getNodeLabel(toId)}`, 'success');
+        }
+
+        // 检查是否形成环
+        function wouldCreateCycle(fromId, toId) {
+            if (fromId === toId) return true;
+            
+            // 使用DFS检查
+            const visited = new Set();
+            const recStack = new Set();
+            
+            function hasCycleUtil(nodeId) {
+                visited.add(nodeId);
+                recStack.add(nodeId);
+                
+                const outgoingEdges = edges.filter(e => e.from === nodeId);
+                for (const edge of outgoingEdges) {
+                    if (edge.to === fromId) return true;
+                    if (!visited.has(edge.to) && hasCycleUtil(edge.to)) {
+                        return true;
+                    }
+                }
+                
+                recStack.delete(nodeId);
+                return false;
+            }
+            
+            // 添加临时边检查
+            edges.push({ from: fromId, to: toId });
+            const hasCycle = hasCycleUtil(toId);
+            edges.pop();
+            
+            return hasCycle;
+        }
+
+        // 更新边的显示
+        function updateEdges() {
+            // 清除现有边
+            document.querySelectorAll('.edge').forEach(e => e.remove());
+            
+            edges.forEach(edge => {
+                const fromNode = document.getElementById(edge.from);
+                const toNode = document.getElementById(edge.to);
+                
+                if (!fromNode || !toNode) return;
+                
+                const fromRect = fromNode.getBoundingClientRect();
+                const toRect = toNode.getBoundingClientRect();
+                const canvasRect = document.getElementById('canvas').getBoundingClientRect();
+                
+                const x1 = fromRect.left + fromRect.width / 2 - canvasRect.left;
+                const y1 = fromRect.top + fromRect.height / 2 - canvasRect.top;
+                const x2 = toRect.left + toRect.width / 2 - canvasRect.left;
+                const y2 = toRect.top + toRect.height / 2 - canvasRect.top;
+                
+                const edgeElement = document.createElement('div');
+                edgeElement.className = 'edge';
+                edgeElement.id = edge.id;
+                edgeElement.innerHTML = `
+                    <svg>
+                        <path d="M ${x1} ${y1} L ${x2} ${y2}" />
+                    </svg>
+                `;
+                
+                // 添加边点击事件
+                edgeElement.addEventListener('click', () => selectEdge(edge.id));
+                
+                document.getElementById('canvas').appendChild(edgeElement);
+            });
+        }
+
+        // 选择边
+        function selectEdge(edgeId) {
+            clearSelection();
+            selectedEdge = edgeId;
+            const edge = document.getElementById(edgeId);
+            if (edge) {
+                edge.classList.add('selected');
+            }
+        }
+
+        // 清除选择
+        function clearSelection() {
+            document.querySelectorAll('.node').forEach(n => n.classList.remove('selected'));
+            document.querySelectorAll('.edge').forEach(e => e.classList.remove('selected'));
+            selectedNode = null;
+            selectedEdge = null;
+        }
+
+        // 清除边选择
+        function clearEdgeSelection() {
+            document.querySelectorAll('.edge').forEach(e => e.classList.remove('selected'));
+            selectedEdge = null;
+        }
+
+        // 删除选中的边
+        function deleteSelectedEdge() {
+            if (selectedEdge) {
+                const edgeIndex = edges.findIndex(e => e.id === selectedEdge);
+                if (edgeIndex > -1) {
+                    edges.splice(edgeIndex, 1);
+                    updateEdges();
+                    updateMermaidCode();
+                    setStatus('已删除选中的边', 'info');
+                    selectedEdge = null;
+                }
+            } else {
+                setStatus('请先点击选择要删除的边', 'error');
+            }
+        }
+
+        // 删除选中的节点或边
+        function deleteSelected() {
+            if (selectedNode) {
+                // 删除相关边
+                edges = edges.filter(e => e.from !== selectedNode && e.to !== selectedNode);
+                
+                // 删除节点
+                const nodeIndex = nodes.findIndex(n => n.id === selectedNode);
+                if (nodeIndex > -1) {
+                    nodes.splice(nodeIndex, 1);
+                    document.getElementById(selectedNode).remove();
+                }
+                
+                selectedNode = null;
+                updateEdges();
+                updateMermaidCode();
+                setStatus('已删除选中节点及其相关边', 'info');
+            }
+        }
+
+        // 更新Mermaid代码
+        function updateMermaidCode() {
+            if (nodes.length === 0) {
+                document.getElementById('mermaidOutput').textContent = 'graph TD';
+                document.getElementById('mermaidPreview').textContent = 'graph TD';
+                return;
+            }
+            
+            let mermaidCode = 'graph TD\n';
+            
+            // 添加节点
+            nodes.forEach(node => {
+                const safeLabel = node.label.replace(/"/g, '\\"');
+                mermaidCode += `    ${node.id}["${safeLabel}"]\n`;
+            });
+            
+            // 添加边
+            edges.forEach(edge => {
+                mermaidCode += `    ${edge.from} --> ${edge.to}\n`;
+            });
+            
+            document.getElementById('mermaidOutput').textContent = mermaidCode;
+            updateMermaidPreview(mermaidCode);
+        }
+
+        // 更新Mermaid预览
+        function updateMermaidPreview(code) {
+            const preview = document.getElementById('mermaidPreview');
+            preview.removeAttribute('data-processed');
+            preview.textContent = code;
+            mermaid.init(undefined, preview);
+        }
+
+        // 获取节点标签
+        function getNodeLabel(nodeId) {
+            const node = nodes.find(n => n.id === nodeId);
+            return node ? node.label : nodeId;
+        }
+
+        // 设置状态栏消息
+        function setStatus(message, type = 'info') {
+            const statusBar = document.getElementById('statusBar');
+            statusBar.textContent = message;
+            statusBar.className = 'status-bar ' + type;
+            
+            setTimeout(() => {
+                statusBar.className = 'status-bar';
+                statusBar.textContent = '点击"添加节点"开始创建DAG图。拖拽节点进行连接，拖拽节点到空白处移动位置。';
+            }, 3000);
+        }
+
+        // 导出代码
+        function exportCode() {
+            const code = document.getElementById('mermaidOutput').textContent;
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'dag-diagram.mmd';
+            a.click();
+            URL.revokeObjectURL(url);
+            setStatus('Mermaid代码已导出！', 'success');
+        }
+
+        // 清空画布
+        function clearAll() {
+            if (confirm('确定要清空整个画布吗？此操作不可撤销！')) {
+                nodes = [];
+                edges = [];
+                nodeCounter = 0;
+                selectedNode = null;
+                selectedEdge = null;
+                document.getElementById('canvas').innerHTML = `
+                    <svg style="position: absolute; width: 100%; height: 100%; pointer-events: none;">
+                        <defs>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+                                    refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#7f8c8d" />
+                            </marker>
+                        </defs>
+                    </svg>
+                `;
+                updateMermaidCode();
+                setStatus('画布已清空', 'info');
+            }
+        }
+
+        // 初始化
+        addNode(); // 添加一个默认节点
+    </script>
+</body>
+</html>
