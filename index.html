@@ -284,7 +284,7 @@
         
         <div class="output-panel">
             <div class="panel-header">Mermaid代码</div>
-            <div class="mermaid-output" id="mermaidOutput"></div>
+            <textarea class="mermaid-output" id="mermaidOutput" onchange="showMermaid()"></textarea>
             <div class="preview">
                 <div class="panel-header">预览</div>
                 <div id="mermaidPreview" class="mermaid">graph TD</div>
@@ -697,7 +697,12 @@
                 mermaidCode += `    ${edge.from} --> ${edge.to}\n`;
             });
             
-            document.getElementById('mermaidOutput').textContent = mermaidCode;
+            document.getElementById('mermaidOutput').value = mermaidCode;
+            updateMermaidPreview(mermaidCode);
+        }
+
+        function showMermaid() {
+            mermaidCode = document.getElementById('mermaidOutput').value;
             updateMermaidPreview(mermaidCode);
         }
 
